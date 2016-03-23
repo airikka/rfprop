@@ -125,7 +125,7 @@ modify_kml()
 
 pack_kmz()
 {
-	zip -j ${workname}.kmz ${workdirname}.kml ${workdirname}-ck.ppm ${workdirname}.png ${lrpdirname} ${qthdirname} ${scfdirname} ${workdirname}-site_report.txt
+	zip -j ${workname}.kmz ${workdirname}.kml ${workdirname}-ck.ppm ${workdirname}.png ${lrpdirname} ${qthdirname} ${scfdirname} ${workdir}/${name}-site_report.txt
 }
 
 remove_workdir()
