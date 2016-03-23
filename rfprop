@@ -135,6 +135,7 @@ remove_workdir()
 
 if [ $# -ne 11 ]; then
 	usage
+	remove_workdir
 	exit 42
 fi
 
