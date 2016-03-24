@@ -147,6 +147,9 @@ remove_workdir()
 	rm -rf -- ${workdir}
 	echo "done"
 }
+echo "------------------------------------------"
+echo "rfprop - https://github.com/airikka/rfprop"
+echo "------------------------------------------"
 
 if [ $# -ne 11 ]; then
 	usage
