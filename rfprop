@@ -1,7 +1,7 @@
 #!/bin/sh
 
 ver="0.4"
-name="$1"
+name=$(echo $1 | sed 's/[[:space:]]/_/g')
 workdir=$(mktemp -d "/tmp/${name}.XXXXXXXXXX")
 scf="${name}.scf"
 lrp="${name}.lrp"
@@ -48,6 +48,8 @@ usage()
 
 gen_scf()
 {
+	echo -n "Generating scf file..."
+
 cat << EOF >> ${scfdirname}
 ; SPLAT! Signal Color Definition File
 130: 255,   0, 255
@@ -76,10 +78,13 @@ cat << EOF >> ${scfdirname}
   5: 160,   0,   0
   0: 128,   0,   0
 EOF
+
+	echo "done"
 }
 
 gen_lrp()
 {
+	echo -n "Generating lrp file..."
 cat << EOF >> ${lrpdirname}
 15.000  ; Earth Dielectric Constant (Relative permittivity)
 0.005   ; Earth Conductivity (Siemens per meter)
@@ -91,14 +96,17 @@ ${freq} ; Frequency in MHz (20 MHz to 20 GHz)
 0.90    ; Fraction of time (90% of the time)
 ${erp}  ; Effective Radiated Power (ERP) in Watts (optional)
 EOF
+	echo -n "done"
 }
 
 gen_qth()
 {
+	echo -n "Generating qth file..."
 	echo ${name} > ${qthdirname}
 	echo ${lat} >> ${qthdirname}
 	echo ${lon} >> ${qthdirname}
 	echo ${theight}m >> ${qthdirname}
+	echo "done"
 }
 
 run_splat()
@@ -110,17 +118,21 @@ run_splat()
 
 convert_ppm()
 {
+	echo -n "Converting ppm..."
 	convert -transparent "#ffffff" ${workdirname}.ppm ${workdirname}_tmp.png
 	rm ${workdirname}.ppm
 	convert -alpha on -channel a -evaluate subtract 25% ${workdirname}_tmp.png ${workdirname}.png
 	rm ${workdirname}_tmp.png
+	echo "done"
 }
 
 modify_kml()
 {
+	echo -n "Modifying kml..."
 	sed -i "s|${workdir}||g" ${workdirname}.kml
 	sed -i "s|<name>SPLAT! HD</name>|<name>${workname}</name>|" ${workdirname}.kml
 	sed -i "s/${workname}\.ppm/${workname}\.png/" ${workdirname}.kml
+	echo "done"
 }
 
 pack_kmz()
@@ -130,7 +142,9 @@ pack_kmz()
 
 remove_workdir()
 {
+	echo -n "Cleaning up..."
 	rm -rf -- ${workdir}
+	echo "done"
 }
 
 if [ $# -ne 11 ]; then
