@@ -1,6 +1,9 @@
 #!/bin/sh
 
 ver="0.4"
+lockfile="/tmp/.rfprop.lockfile"
+lock_count_max=360
+lock_timeout=10
 name=$(echo $1 | sed 's/[[:space:]]/_/g')
 workdir=$(mktemp -d "/tmp/${name}.XXXXXXXXXX")
 scf="${name}.scf"
@@ -44,6 +47,32 @@ usage()
 	echo "db\t- lower threshold (dBuV/m)"
 	echo "hd\t- use splat-hd (0=splat, 1=splat-hd)"
 	echo "sdf-dir\t- absolute path to dir with sdf files"
+}
+
+take_lock()
+{
+	local counter=0
+	local counter_tmp=0
+	while [ ${counter} -lt ${lock_count_max} ]; do
+		if [ -f ${lockfile} ]; then
+			echo "Lock already taken. Someone is using rfprop. Waiting ("$(expr ${lock_count_max} - ${counter})")..."
+			counter_tmp=$(expr $counter + 1)
+			counter=${counter_tmp}
+			sleep ${lock_timeout}
+		else
+			touch ${lockfile}
+			return 0
+		fi
+	done
+
+	echo "Timed out."
+
+	return 1
+}
+
+release_lock()
+{
+	[ -f ${lockfile} ] && rm -- ${lockfile}
 }
 
 gen_scf()
@@ -161,6 +190,12 @@ if [ "${hd}" -eq 1 ]; then
 	SPLAT="splat-hd"
 fi
 
+take_lock
+if [ $? -ne 0 ]; then
+	remove_workdir
+	exit 43
+fi
+
 gen_scf
 gen_lrp
 gen_qth
@@ -169,5 +204,6 @@ convert_ppm
 modify_kml
 pack_kmz
 remove_workdir
+release_lock
 
 exit 0
