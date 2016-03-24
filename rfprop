@@ -96,7 +96,7 @@ ${freq} ; Frequency in MHz (20 MHz to 20 GHz)
 0.90    ; Fraction of time (90% of the time)
 ${erp}  ; Effective Radiated Power (ERP) in Watts (optional)
 EOF
-	echo -n "done"
+	echo "done"
 }
 
 gen_qth()
