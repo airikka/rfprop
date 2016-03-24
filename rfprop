@@ -121,6 +121,7 @@ convert_ppm()
 	echo -n "Converting ppm..."
 	convert -transparent "#ffffff" ${workdirname}.ppm ${workdirname}_tmp.png
 	rm ${workdirname}.ppm
+	echo -n "still converting..."
 	convert -alpha on -channel a -evaluate subtract 25% ${workdirname}_tmp.png ${workdirname}.png
 	rm ${workdirname}_tmp.png
 	echo "done"
