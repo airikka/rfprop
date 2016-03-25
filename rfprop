@@ -4,7 +4,7 @@ ver="0.4"
 lockfile="/tmp/.rfprop.lockfile"
 lock_count_max=360
 lock_timeout=10
-name=$(echo $1 | sed -e 's/[ÅÄ]/A/g' -e 's/[åä]/a/g' -e 's/Ö/O/g' -e 's/ö/o/g' -e 's/[^a-z^A-Z^0-9]/_/g')
+name=$(echo "$1" | sed -e 's/[ÅÄ]/A/g' -e 's/[åä]/a/g' -e 's/Ö/O/g' -e 's/ö/o/g' -e 's/[^a-z^A-Z^0-9]/_/g')
 workdir=$(mktemp -d "/tmp/${name}.XXXXXXXXXX")
 scf="${name}.scf"
 lrp="${name}.lrp"
@@ -19,9 +19,11 @@ rheight="$5"
 freq="$6"
 erp="$7"
 pol="$8"
-db="$9"
-hd="$10"
-srtm="$11"
+cli="$9"
+db="$10"
+hd="$11"
+srtm="$12"
+varnum=12
 workname="${name}_${freq}_${theight}_${rheight}_${erp}"
 workdirname="${workdir}/${workname}"
 currdir=$(pwd)
@@ -34,7 +36,7 @@ usage()
 	echo Description:
 	echo Helper script that generates kmz file
 	echo
-	echo $0 name lat lon theight rheight freq erp pol db hd sdf-dir
+	echo $0 name lat lon theight rheight freq erp pol cli db hd sdf-dir
 	echo
 	echo "name\t- something describing"
 	echo "lat\t- latitude in decimal form (e.g 57.694306)"
@@ -44,6 +46,7 @@ usage()
 	echo "freq\t- frequency (20-20000 MHz)"
 	echo "erp\t- ERP (Watt)"
 	echo "pol\t- polarization (0=horizontal, 1=vertical)"
+	echo "cli\t- Radio climate code (e.g 6 for Maritime Temperate, over land (consult \"man splat\" for whole table))"
 	echo "db\t- lower threshold (dBuV/m)"
 	echo "hd\t- use splat-hd (0=splat, 1=splat-hd)"
 	echo "sdf-dir\t- absolute path to dir with sdf files"
@@ -119,7 +122,7 @@ cat << EOF >> ${lrpdirname}
 0.005   ; Earth Conductivity (Siemens per meter)
 301.000 ; Atmospheric Bending Constant (N-units)
 ${freq} ; Frequency in MHz (20 MHz to 20 GHz)
-6       ; Radio Climate (5 = Continental Temperate)
+${cli}  ; Radio Climate (5 = Continental Temperate)
 1       ; Polarization (0 = Horizontal, 1 = Vertical)
 0.50    ; Fraction of situations (50% of locations)
 0.90    ; Fraction of time (90% of the time)
@@ -180,13 +183,13 @@ echo "------------------------------------------"
 echo "rfprop - https://github.com/airikka/rfprop"
 echo "------------------------------------------"
 
-if [ $# -ne 11 ]; then
+if [ $# -ne ${varnum} ]; then
 	usage
 	remove_workdir
 	exit 42
 fi
 
-if [ "${hd}" -eq 1 ]; then
+if [ ${hd} -eq 1 ]; then
 	SPLAT="splat-hd"
 fi
 
