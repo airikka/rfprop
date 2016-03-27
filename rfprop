@@ -1,10 +1,12 @@
-#!/bin/sh
+#!/bin/bash
 
 ver="0.4"
+debug=0
 lockfile="/tmp/.rfprop.lockfile"
 lock_count_max=360
 lock_timeout=10
-name=$(echo "$1" | sed -e 's/[ÅÄ]/A/g' -e 's/[åä]/a/g' -e 's/Ö/O/g' -e 's/ö/o/g' -e 's/[^a-z^A-Z^0-9]/_/g')
+ECHO="$(which echo) -e"
+name=$(${ECHO} "${1}" | sed -e 's/[ÅÄ]/A/g' -e 's/[åä]/a/g' -e 's/Ö/O/g' -e 's/ö/o/g' -e 's/[^a-z^A-Z^0-9]/_/g')
 workdir=$(mktemp -d "/tmp/${name}.XXXXXXXXXX")
 scf="${name}.scf"
 lrp="${name}.lrp"
@@ -12,44 +14,46 @@ qth="${name}.qth"
 scfdirname="${workdir}/${scf}"
 lrpdirname="${workdir}/${lrp}"
 qthdirname="${workdir}/${qth}"
-lat="$2"
-lon="$3"
-theight="$4"
-rheight="$5"
-freq="$6"
-erp="$7"
-pol="$8"
-cli="$9"
-db="$10"
-hd="$11"
-srtm="$12"
+lat="${2}"
+lon="${3}"
+theight="${4}"
+rheight="${5}"
+freq="${6}"
+erp="${7}"
+pol="${8}"
+cli="${9}"
+db="${10}"
+hd="${11}"
+srtm="${12}"
 varnum=12
 workname="${name}_${freq}_${theight}_${rheight}_${erp}"
 workdirname="${workdir}/${workname}"
 currdir=$(pwd)
 SPLAT="splat"
+dots=74
+dotsleep=2
 
 usage()
 {
-	echo $(basename $0) version ${ver}
-	echo
-	echo Description:
-	echo Helper script that generates kmz file
-	echo
-	echo $0 name lat lon theight rheight freq erp pol cli db hd sdf-dir
-	echo
-	echo "name\t- something describing"
-	echo "lat\t- latitude in decimal form (e.g 57.694306)"
-	echo "lon\t- longitude in decimal form (e.g -12.058889)"
-	echo "theight\t- transmitter antenna height above ground (meters)"
-	echo "rheight\t- receiver antenna height above ground (meters)"
-	echo "freq\t- frequency (20-20000 MHz)"
-	echo "erp\t- ERP (Watt)"
-	echo "pol\t- polarization (0=horizontal, 1=vertical)"
-	echo "cli\t- Radio climate code (e.g 6 for Maritime Temperate, over land (consult \"man splat\" for whole table))"
-	echo "db\t- lower threshold (dBuV/m)"
-	echo "hd\t- use splat-hd (0=splat, 1=splat-hd)"
-	echo "sdf-dir\t- absolute path to dir with sdf files"
+	${ECHO} $(basename $0) version ${ver}
+	${ECHO}
+	${ECHO} Description:
+	${ECHO} Helper script that generates kmz file
+	${ECHO}
+	${ECHO} $0 name lat lon theight rheight freq erp pol cli db hd sdf-dir
+	${ECHO}
+	${ECHO} "name\t- something describing"
+	${ECHO} "lat\t- latitude in decimal form (e.g 57.694306)"
+	${ECHO} "lon\t- longitude in decimal form (e.g -12.058889)"
+	${ECHO} "theight\t- transmitter antenna height above ground (meters)"
+	${ECHO} "rheight\t- receiver antenna height above ground (meters)"
+	${ECHO} "freq\t- frequency (20-20000 MHz)"
+	${ECHO} "erp\t- ERP (Watt)"
+	${ECHO} "pol\t- polarization (0=horizontal, 1=vertical)"
+	${ECHO} "cli\t- radio climate code (e.g 6 for Maritime Temperate, over land (consult \"man splat\" for whole table))"
+	${ECHO} "db\t- lower threshold (dBuV/m)"
+	${ECHO} "hd\t- use splat-hd (0=splat, 1=splat-hd)"
+	${ECHO} "sdf-dir\t- absolute path to dir with sdf files"
 }
 
 take_lock()
@@ -58,7 +62,7 @@ take_lock()
 	local counter_tmp=0
 	while [ ${counter} -lt ${lock_count_max} ]; do
 		if [ -f ${lockfile} ]; then
-			echo "Lock already taken. Someone is using rfprop. Waiting ("$(expr ${lock_count_max} - ${counter})")..."
+			${ECHO} "Lock already taken. Someone is using rfprop. Waiting ("$(expr ${lock_count_max} - ${counter})")..."
 			counter_tmp=$(expr $counter + 1)
 			counter=${counter_tmp}
 			sleep ${lock_timeout}
@@ -68,9 +72,28 @@ take_lock()
 		fi
 	done
 
-	echo "Timed out."
+	${ECHO} "Timed out."
 
 	return 1
+}
+
+make_dots()
+{
+	local dots_done=$1
+	local dots_end=$(expr ${dots} - 4)
+	trap "for d in {${dots_done}..${dots}}; do ${ECHO} -n '.'; done; ${ECHO}; return 2" USR1
+	trap "for d in {${dots_done}..${dots_end}}; do ${ECHO} -n '.'; done; return 2" USR2
+	while true; do
+		if [ ${dots_done} -eq ${dots} ]; then
+			${ECHO} "."
+			dots_done=0
+		else
+			${ECHO} -n "."
+			dots_done_tmp=$(expr ${dots_done} + 1)
+			dots_done=${dots_done_tmp}
+		fi
+		sleep ${dotsleep}
+	done
 }
 
 release_lock()
@@ -80,7 +103,7 @@ release_lock()
 
 gen_scf()
 {
-	echo -n "Generating scf file..."
+	${ECHO} -n "Generating scf file..."
 
 cat << EOF >> ${scfdirname}
 ; SPLAT! Signal Color Definition File
@@ -111,12 +134,12 @@ cat << EOF >> ${scfdirname}
   0: 128,   0,   0
 EOF
 
-	echo "done"
+	${ECHO} "done"
 }
 
 gen_lrp()
 {
-	echo -n "Generating lrp file..."
+	${ECHO} -n "Generating lrp file..."
 cat << EOF >> ${lrpdirname}
 15.000  ; Earth Dielectric Constant (Relative permittivity)
 0.005   ; Earth Conductivity (Siemens per meter)
@@ -128,17 +151,17 @@ ${cli}  ; Radio Climate (5 = Continental Temperate)
 0.90    ; Fraction of time (90% of the time)
 ${erp}  ; Effective Radiated Power (ERP) in Watts (optional)
 EOF
-	echo "done"
+	${ECHO} "done"
 }
 
 gen_qth()
 {
-	echo -n "Generating qth file..."
-	echo ${name} > ${qthdirname}
-	echo ${lat} >> ${qthdirname}
-	echo ${lon} >> ${qthdirname}
-	echo ${theight}m >> ${qthdirname}
-	echo "done"
+	${ECHO} -n "Generating qth file..."
+	${ECHO} ${name} > ${qthdirname}
+	${ECHO} ${lat} >> ${qthdirname}
+	${ECHO} ${lon} >> ${qthdirname}
+	${ECHO} ${theight}m >> ${qthdirname}
+	${ECHO} "done"
 }
 
 run_splat()
@@ -150,22 +173,31 @@ run_splat()
 
 convert_ppm()
 {
-	echo -n "Converting ppm..."
+	local dotspid=0
+	${ECHO} -n "Converting ppm..."
+	make_dots 17 &
+	dotspid=$!
 	convert -transparent "#ffffff" ${workdirname}.ppm ${workdirname}_tmp.png
 	rm ${workdirname}.ppm
-	echo -n "still converting..."
+	kill -USR1 ${dotspid}
+	sleep ${dotsleep}
+	${ECHO} -n "still converting..."
+	make_dots 19 &
+	dotspid=$!
 	convert -alpha on -channel a -evaluate subtract 25% ${workdirname}_tmp.png ${workdirname}.png
 	rm ${workdirname}_tmp.png
-	echo "done"
+	kill -USR2 ${dotspid}
+	sleep ${dotsleep}
+	${ECHO} "done"
 }
 
 modify_kml()
 {
-	echo -n "Modifying kml..."
+	${ECHO} -n "Modifying kml..."
 	sed -i "s|${workdir}||g" ${workdirname}.kml
 	sed -i "s|<name>SPLAT! HD</name>|<name>${workname}</name>|" ${workdirname}.kml
 	sed -i "s/${workname}\.ppm/${workname}\.png/" ${workdirname}.kml
-	echo "done"
+	${ECHO} "done"
 }
 
 pack_kmz()
@@ -175,13 +207,13 @@ pack_kmz()
 
 remove_workdir()
 {
-	echo -n "Cleaning up..."
+	${ECHO} -n "Cleaning up..."
 	rm -rf -- ${workdir}
-	echo "done"
+	${ECHO} "done"
 }
-echo "------------------------------------------"
-echo "rfprop - https://github.com/airikka/rfprop"
-echo "------------------------------------------"
+${ECHO} "------------------------------------------"
+${ECHO} "rfprop - https://github.com/airikka/rfprop"
+${ECHO} "------------------------------------------"
 
 if [ $# -ne ${varnum} ]; then
 	usage
@@ -191,6 +223,41 @@ fi
 
 if [ ${hd} -eq 1 ]; then
 	SPLAT="splat-hd"
+fi
+
+if [ ${debug} -eq 1 ]; then
+	${ECHO} ver: ${ver}
+	${ECHO} debug: ${debug}
+	${ECHO} lockfile: ${lockfile}
+	${ECHO} lock_count_max: ${lock_count_max}
+	${ECHO} lock_timeout: ${lock_timeout}
+	${ECHO} ECHO: ${ECHO}
+	${ECHO} name: ${name}
+	${ECHO} workdir: ${workdir}
+	${ECHO} scf: ${scf}
+	${ECHO} lrp: ${lrp}
+	${ECHO} qth: ${qth}
+	${ECHO} scfdirname: ${scfdirname}
+	${ECHO} lrpdirname: ${lrpdirname}
+	${ECHO} qthdirname: ${qthdirname}
+	${ECHO} lat: ${lat}
+	${ECHO} lon: ${lon}
+	${ECHO} theight: ${theight}
+	${ECHO} rheight: ${rheight}
+	${ECHO} freq: ${freq}
+	${ECHO} erp: ${erp}
+	${ECHO} pol: ${pol}
+	${ECHO} cli: ${cli}
+	${ECHO} db: ${db}
+	${ECHO} hd: ${hd}
+	${ECHO} srtm: ${srtm}
+	${ECHO} varnum: ${varnum}
+	${ECHO} workname: ${workname}
+	${ECHO} workdirname: ${workdirname}
+	${ECHO} currdir: ${currdir}
+	${ECHO} SPLAT: ${SPLAT}
+	${ECHO} dots: ${dots}
+	${ECHO} dotsleep: ${dotsleep}
 fi
 
 take_lock
