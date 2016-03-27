@@ -92,6 +92,8 @@ make_dots()
 			dots_done_tmp=$(expr ${dots_done} + 1)
 			dots_done=${dots_done_tmp}
 		fi
+		trap "for d in {${dots_done}..${dots}}; do ${ECHO} -n '.'; done; ${ECHO}; return 2" USR1
+		trap "for d in {${dots_done}..${dots_end}}; do ${ECHO} -n '.'; done; return 2" USR2
 		sleep ${dotsleep}
 	done
 }
